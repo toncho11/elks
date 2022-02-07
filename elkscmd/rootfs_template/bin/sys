@@ -65,17 +65,17 @@ copy_bin_files()
 	cp /bin/umount	$MNT/bin
 	cp /bin/cat	$MNT/bin
 	cp /bin/clock	$MNT/bin
-	cp /bin/data	$MNT/bin
+	cp /bin/date	$MNT/bin
 	cp /bin/fdisk	$MNT/bin
 	cp /bin/grep	$MNT/bin
 	cp /bin/meminfo	$MNT/bin
 	cp /bin/mkfat	$MNT/bin
 	cp /bin/mkfs	$MNT/bin
-	cp /bin/mv		$MNT/bin
-	cp /bin/net		$MNT/bin
+	cp /bin/mv	$MNT/bin
+	cp /bin/net	$MNT/bin
 	cp /bin/reboot	$MNT/bin
 	cp /bin/rm	$MNT/bin
-	cp /bin/shutdown	$MNT/bin
+	cp /bin/shutdown $MNT/bin
 	cp /bin/true	$MNT/bin
 }
 
@@ -90,11 +90,10 @@ copy_etc_files()
 	cp /etc/group	$MNT/etc
 	cp /etc/hosts	$MNT/etc
 	cp /etc/motd	$MNT/etc
-	cp /etc/mount.cfg	$MNT/etc
+	cp /etc/mount.cfg $MNT/etc
 	cp /etc/net.cfg	$MNT/etc
 	cp /etc/rc.sys	$MNT/etc
-	cp /etc/term.cap	$MNT/etc
-	
+	cp /etc/term.cap $MNT/etc
 }
 
 # sys script starts here
