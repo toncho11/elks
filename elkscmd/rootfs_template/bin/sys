@@ -63,6 +63,20 @@ copy_bin_files()
 	cp /bin/sys	$MNT/bin
 	cp /bin/test	$MNT/bin
 	cp /bin/umount	$MNT/bin
+	cp /bin/cat	$MNT/bin
+	cp /bin/clock	$MNT/bin
+	cp /bin/data	$MNT/bin
+	cp /bin/fdisk	$MNT/bin
+	cp /bin/grep	$MNT/bin
+	cp /bin/meminfo	$MNT/bin
+	cp /bin/mkfat	$MNT/bin
+	cp /bin/mkfs	$MNT/bin
+	cp /bin/mv		$MNT/bin
+	cp /bin/net		$MNT/bin
+	cp /bin/reboot	$MNT/bin
+	cp /bin/rm	$MNT/bin
+	cp /bin/shutdown	$MNT/bin
+	cp /bin/true	$MNT/bin
 }
 
 copy_etc_files()
