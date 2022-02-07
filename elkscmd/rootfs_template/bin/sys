@@ -73,6 +73,14 @@ copy_etc_files()
 	cp /etc/profile	$MNT/etc
 	cp /etc/sashrc	$MNT/etc
 	cp /etc/issue	$MNT/etc
+	cp /etc/group	$MNT/etc
+	cp /etc/hosts	$MNT/etc
+	cp /etc/motd	$MNT/etc
+	cp /etc/mount.cfg	$MNT/etc
+	cp /etc/net.cfg	$MNT/etc
+	cp /etc/rc.sys	$MNT/etc
+	cp /etc/term.cap	$MNT/etc
+	
 }
 
 # sys script starts here
