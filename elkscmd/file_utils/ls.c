@@ -133,27 +133,49 @@ static void pushstack(struct stack *pstack, char *entry, long l)
     pstack->buf[pstack->size++].name = entry;
 }
 
-static void sortstack(struct stack *pstack)
+#define INSERTION_SORT_THRESHOLD 16
+
+static void insertion_sort(struct sort *buf, int start, int end)
 {
-    if (nosort)
-        return;
-
-    int i, j;
-    struct sort key;
-
-	//using insertion sort
-    for (i = 1; i < pstack->size; i++) {
-        key = pstack->buf[i];
-        j = i - 1;
-
-        while (j >= 0 && namesort(&pstack->buf[j], &key) > 0) {
-            pstack->buf[j + 1] = pstack->buf[j];
+    for (int i = start + 1; i < end; i++) {
+        struct sort key = buf[i];
+        int j = i - 1;
+        while (j >= start) {
+            int cmp;
+            if (sortbytime || sortbysize) {
+                cmp = sign(reverse * (buf[j].longval - key.longval));
+            } else {
+                cmp = reverse * strcmp(buf[j].name, key.name);
+            }
+            if (cmp <= 0) break;
+            buf[j + 1] = buf[j];
             j--;
         }
-        pstack->buf[j + 1] = key;
+        buf[j + 1] = key;
     }
 }
 
+static void sortstack(struct stack *pstack)
+{
+    if (nosort || pstack->size <= 1)
+        return;
+
+    if (pstack->size <= INSERTION_SORT_THRESHOLD) {
+        // Small array — just insertion sort
+        insertion_sort(pstack->buf, 0, pstack->size);
+    } else {
+        // For larger arrays:
+        // 1. Insertion sort small chunks
+        for (int i = 0; i < pstack->size; i += INSERTION_SORT_THRESHOLD) {
+            int end = i + INSERTION_SORT_THRESHOLD;
+            if (end > pstack->size) end = pstack->size;
+            insertion_sort(pstack->buf, i, end);
+        }
+        // 2. Then qsort the whole array (partially sorted now)
+        qsort(pstack->buf, pstack->size, sizeof(struct sort),
+              (int (*)(const void*, const void*))namesort);
+    }
+}
 
 static int getfiles(char *name, struct stack *pstack, int flags)
 {
