@@ -39,10 +39,6 @@ static char sccsid[] = "@(#)jobs.c	5.1 (Berkeley) 3/7/91";
 #endif /* not lint */
 
 #include "shell.h"
-#if JOBS
-#include "sgtty.h"
-#undef CEOF			/* syntax.h redefines this */
-#endif
 #include "main.h"
 #include "parser.h"
 #include "nodes.h"
@@ -79,9 +75,11 @@ int njobs;			/* size of array */
 MKINIT short backgndpid = -1;	/* pid of last background process */
 #if JOBS
 int initialpgrp;		/* pgrp of shell on invocation */
+STATIC int procrunning(int);
+#endif
+#if JOBSP
 short curjob;			/* current job */
 STATIC void restartjob(struct job *);
-STATIC int procrunning(int);
 #endif
 
 #ifdef __STDC__
@@ -167,24 +165,6 @@ SHELLPROC {
 
 
 #if JOBS
-fgcmd(argc, argv)  char **argv; {
-	struct job *jp;
-	int pgrp;
-	int status;
-
-	jp = getjob(argv[1]);
-	if (jp->jobctl == 0)
-		error("job not created under job control");
-	pgrp = jp->ps[0].pid;
-	ioctl(2, TIOCSPGRP, (char *)&pgrp);
-	restartjob(jp);
-	INTOFF;
-	status = waitforjob(jp);
-	INTON;
-	return status;
-}
-
-
 bgcmd(argc, argv)  char **argv; {
 	struct job *jp;
 
@@ -195,6 +175,27 @@ bgcmd(argc, argv)  char **argv; {
 		restartjob(jp);
 	} while (--argc > 1);
 	return 0;
+}
+#endif
+
+
+#if JOBSP
+fgcmd(argc, argv)  char **argv; {
+	struct job *jp;
+	int status;
+
+	jp = getjob(argv[1]);
+#if JOBS
+	if (jp->jobctl == 0)
+		error("job not created under job control");
+	int pgrp = jp->ps[0].pid;
+	ioctl(2, TIOCSPGRP, (char *)&pgrp);
+#endif
+	restartjob(jp);
+	INTOFF;
+	status = waitforjob(jp);
+	INTON;
+	return status;
 }
 
 
@@ -208,7 +209,7 @@ restartjob(jp)
 	if (jp->state == JOBDONE)
 		return;
 	INTOFF;
-	killpg(jp->ps[0].pid, SIGCONT);
+	kill(jp->ps[0].pid, SIGCONT);       /* NOTE: was killpg for JOBS */
 	for (ps = jp->ps, i = jp->nprocs ; --i >= 0 ; ps++) {
 		if ((ps->status & 0377) == 0177) {
 			ps->status = -1;
@@ -319,7 +320,7 @@ freejob(jp)
 	if (jp->ps != &jp->ps0)
 		ckfree(jp->ps);
 	jp->used = 0;
-#if JOBS
+#if JOBSP
 	if (curjob == jp - jobtab + 1)
 		curjob = 0;
 #endif
@@ -398,7 +399,7 @@ getjob(name)
 	int i;
 
 	if (name == NULL) {
-#if JOBS
+#if JOBSP
 currentjob:
 		if ((jobno = curjob) == 0 || jobtab[jobno - 1].used == 0)
 			error("No current job");
@@ -412,7 +413,7 @@ currentjob:
 			if (jobno > 0 && jobno <= njobs
 			 && jobtab[jobno - 1].used != 0)
 				return &jobtab[jobno - 1];
-#if JOBS
+#if JOBSP
 		} else if (name[1] == '%' && name[2] == '\0') {
 			goto currentjob;
 #endif
@@ -650,9 +651,9 @@ waitforjob(jp)
 		if (ioctl(2, TIOCSPGRP, (char *)&mypgrp) < 0)
 			error("TIOCSPGRP failed, errno=%d\n", errno);
 	}
+#endif
 	if (jp->state == JOBSTOPPED)
 		curjob = jp - jobtab + 1;
-#endif
 	status = jp->ps[jp->nprocs - 1].status;
 	/* convert to 8 bits */
 	if ((status & 0xFF) == 0)
@@ -726,7 +727,7 @@ dowait(block, job)
 				if (jp->state != state) {
 					TRACE(("Job %d: changing state from %d to %d\n", jp - jobtab + 1, jp->state, state));
 					jp->state = state;
-#if JOBS
+#if JOBSP
 					if (done && curjob == jp - jobtab + 1)
 						curjob = 0;		/* no current job */
 #endif
@@ -744,7 +745,7 @@ dowait(block, job)
 			if (thisjob != job)
 				outfmt(out2, "%d: ", pid);
 			if (status == SIGTSTP && rootshell && iflag)
-#if JOBS
+#if JOBSP
 				outfmt(out2, "%%%d ", job - jobtab + 1);
 #else
 				outfmt(out2, "%d: ", pid);

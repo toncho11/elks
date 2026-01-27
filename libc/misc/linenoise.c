@@ -189,6 +189,7 @@ enum KEY_ACTION{
     CTRL_F = 6,         /* Ctrl-f */
     CTRL_H = 8,         /* Ctrl-h - Backspace*/
     TAB = 9,            /* Tab */
+    CTRL_J = 10,        /* Linefeed */
     CTRL_K = 11,        /* Ctrl+k */
     CTRL_L = 12,        /* Ctrl+l */
     ENTER = 13,         /* Enter */
@@ -460,10 +461,10 @@ static int getCursorPosition(int ifd, int ofd) {
     char buf[32];
     struct termios org, vmin;
 
-    /* change raw mode to wait 200ms instead of 1 character for DSR response*/
+    /* change raw mode to wait 500ms instead of 1 character for DSR response*/
     tcgetattr(ifd,&org);
     vmin = org;
-    vmin.c_cc[VMIN] = 0; vmin.c_cc[VTIME] = 2; /* 0 bytes, 200ms timer */
+    vmin.c_cc[VMIN] = 0; vmin.c_cc[VTIME] = 5; /* 0 bytes, 500ms timer */
     tcsetattr(ifd,TCSAFLUSH,&vmin);
 
     /* Report cursor location */
@@ -1070,6 +1071,7 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
 
         switch((unsigned int)c) {
         case ENTER:    /* enter */
+        case CTRL_J:   /* linefeed */
             history_len--;
             free(history[history_len]);
             if (mlmode) linenoiseEditMoveEnd(&l);

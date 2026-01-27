@@ -289,30 +289,28 @@ static void tty_echo(register struct tty *tty, unsigned char ch)
 size_t tty_write(struct inode *inode, struct file *file, char *data, size_t len)
 {
     register struct tty *tty = determine_tty(inode->i_rdev);
-    size_t i;
-    int s;
+    size_t count = 0;
+    int ret;
 
-    i = 0;
-    while (i < len) {
-        s = chq_wait_wr(&tty->outq, (file->f_flags & O_NONBLOCK) | i);
-        if (s < 0) {
-            /* FIXME EAGAIN not returned, cycle required on telnet nonblocking terminal */
-            if (s == -EINTR || s == -EAGAIN) {
+    while (count < len) {
+        ret = chq_wait_wr(&tty->outq, (file->f_flags & O_NONBLOCK) | count);
+        if (ret < 0) {
+            if (count != 0 && ret == -EAGAIN) {
                 tty->ops->write(tty);
                 wake_up(&tty->outq.wait);
                 schedule();
                 continue;
             }
-            if (i == 0)
-                i = s;
+            if (count == 0)
+                count = ret;
             break;
         }
         chq_addch_nowakeup(&tty->outq, get_user_char(data++));
-        i++;
+        count++;
     }
     tty->ops->write(tty);
     wake_up(&tty->outq.wait);
-    return i;
+    return count;
 }
 
 size_t tty_read(struct inode *inode, struct file *file, char *data, size_t len)
@@ -472,6 +470,7 @@ extern struct tty_ops rs_ops;           /* CONFIG_CHAR_DEV_RS*/
 extern struct tty_ops ttyp_ops;         /* CONFIG_PSEUDO_TTY*/
 extern struct tty_ops i8018xcon_ops;    /* CONFIG_CONSOLE_8018X*/
 extern struct tty_ops necv25con_ops;    /* CONFIG_CONSOLE_NECV25*/
+extern struct tty_ops ps2_mouse_ops;    /* CONFIG_MOUSE_PS2*/
 
 void INITPROC tty_init(void)
 {
@@ -515,6 +514,11 @@ void INITPROC tty_init(void)
         ttyp->ops = &ttyp_ops;
         (ttyp++)->minor = i;            /* ttyp0 = PTY slave PTY_MINOR_OFFSET */
     }
+#endif
+
+#ifdef CONFIG_MOUSE_PS2
+        ttyp->ops = &ps2_mouse_ops;
+        (ttyp++)->minor = MOUSE_MINOR_OFFSET;   /* psaux = PS/2 mouse */
 #endif
 
     register_chrdev(TTY_MAJOR, "tty", &tty_fops);
